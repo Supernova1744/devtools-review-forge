@@ -3,9 +3,28 @@ ReviewJudge:
     temperature: 0.2
     csv_path: "data/real_reviews_capterra.csv"
     rating_column: "rating"
+    persona: "an expert Review Quality Judge"
 
 ReviewGenerator:
     model: "xiaomi/mimo-v2-flash:free"
-    temperature: 0.8
+    temperature: 0.6
     csv_path: "data/real_reviews_capterra.csv"
     rating_column: "rating"
+    persona: "a Technical Reviewer"
+    
+rating_distribution: [0.2, 0.2, 0.2, 0.2, 0.2]
+review_characteristics:
+  # Tones to sample from
+  tones:
+    - "professional_and_objective"
+    - "casual_and_enthusiastic"
+    - "frustrated_but_constructive"
+    - "confused_new_user"
+
+  # Specific topics the LLM should focus on (randomly selected per generation)
+  focus_topics:
+    - "pricing_model"
+    - "customer_support_response_time"
+    - "API_documentation"
+    - "UI_UX_design"
+    - "integration_capabilities"

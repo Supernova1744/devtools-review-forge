@@ -8,7 +8,14 @@ from pydantic import BaseModel, Field
 from .base_agent import BaseAgent
 from src.Models import Review, ReviewList
 
+from src.utils import parse_rating, load_csv_data
+
 class ReviewGenerator(BaseAgent):
+    def __init__(self, model="xiaomi/mimo-v2-flash:free", temperature=0.7, csv_path="data/real_reviews_capterra.csv", rating_column="rating", persona="a Technical Reviewer", review_characteristics=None):
+        super().__init__(model=model, temperature=temperature, csv_path=csv_path, rating_column=rating_column)
+        self.persona = persona
+        self.review_characteristics = review_characteristics or {}
+
     def generate_reviews(self, target_rating, count=5):
         """
         Generates fake reviews based on the style of existing reviews with the target rating.
@@ -34,16 +41,30 @@ class ReviewGenerator(BaseAgent):
             samples_text += f"Pros: {row.get('pros', 'N/A')}\n"
             samples_text += f"Cons: {row.get('cons', 'N/A')}\n"
             samples_text += "-" * 20 + "\n"
+        
+        # Prepare Characteristics Context
+        characteristics_text = ""
+        if self.review_characteristics:
+            tones = self.review_characteristics.get('tones', [])
+            focus_topics = self.review_characteristics.get('focus_topics', [])
+            
+            characteristics_text += "\nREVIEW CHARACTERISTICS TO APPLY:\n"
+            if tones:
+                characteristics_text += f"- Available Tones: {', '.join(tones)} (Select diverse tones from this list)\n"
+            if focus_topics:
+                characteristics_text += f"- Focus Topics to Mention: {', '.join(focus_topics)} (Randomly incorporate these)\n"
 
         # Define the Parser
         parser = JsonOutputParser(pydantic_object=ReviewList)
 
         # Define the Prompt
         template = """
-        You are a Technical Reviewer tasked with generating realistic user reviews for Visual Studio Code (VS Code).
+        You are {persona} tasked with generating realistic user reviews for Visual Studio Code (VS Code).
         Your goal is to create {count} new, unique reviews that mimic the style, tone, and length of the provided examples.
         
         Target Rating: {target_rating} / 5.0
+        
+        {characteristics_text}
         
         Here are {sample_count} real examples of reviews with this rating:
         {samples_text}
@@ -55,7 +76,7 @@ class ReviewGenerator(BaseAgent):
         """
 
         prompt = PromptTemplate(
-            input_variables=["count", "target_rating", "sample_count", "samples_text"],
+            input_variables=["count", "target_rating", "sample_count", "samples_text", "characteristics_text"],
             template=template,
             partial_variables={"format_instructions": parser.get_format_instructions()}
         )
@@ -68,7 +89,9 @@ class ReviewGenerator(BaseAgent):
                 "count": count,
                 "target_rating": target_rating,
                 "sample_count": sample_count,
-                "samples_text": samples_text
+                "samples_text": samples_text,
+                "persona": self.persona,
+                "characteristics_text": characteristics_text
             })
             
             print("\n" + "="*40)

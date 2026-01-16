@@ -6,6 +6,11 @@ from .base_agent import BaseAgent
 from src.Models import ReviewVerdict
 
 class ReviewJudge(BaseAgent):
+    def __init__(self, model="xiaomi/mimo-v2-flash:free", temperature=0.0, csv_path="data/real_reviews_capterra.csv", rating_column="rating", persona="an expert Review Quality Judge", review_characteristics=None):
+        super().__init__(model=model, temperature=temperature, csv_path=csv_path, rating_column=rating_column)
+        self.persona = persona
+        self.review_characteristics = review_characteristics or {}
+
     def evaluate_reviews(self, generated_reviews: List[Dict[str, Any]], target_rating: float):
         """
         Evaluates a list of generated reviews.
@@ -43,15 +48,29 @@ class ReviewJudge(BaseAgent):
             samples_text += f"Pros: {row.get('pros', 'N/A')}\n"
             samples_text += f"Cons: {row.get('cons', 'N/A')}\n"
             samples_text += "-" * 20 + "\n"
+        
+        # Prepare Characteristics Context
+        characteristics_text = ""
+        if self.review_characteristics:
+            tones = self.review_characteristics.get('tones', [])
+            focus_topics = self.review_characteristics.get('focus_topics', [])
+            
+            characteristics_text += "\nVALID GENERATION PARAMETERS (The review MAY use these styles/topics):\n"
+            if tones:
+                characteristics_text += f"- Acceptable Tones: {', '.join(tones)}\n"
+            if focus_topics:
+                characteristics_text += f"- Acceptable Topics: {', '.join(focus_topics)}\n"
 
         parser = JsonOutputParser(pydantic_object=ReviewVerdict)
 
         template = """
-        You are an expert Review Quality Judge. 
+        You are {persona}. 
         Your task is to determine if a "Generated Review" looks and sounds like a REAL user review for Visual Studio Code, 
         specifically compared to the style, tone, length, and detail level of recent real reviews (provided below).
 
         Target Rating: {target_rating}
+        
+        {characteristics_text}
 
         REFERENCE REVIEWS (Ground Truth):
         {samples_text}
@@ -69,19 +88,21 @@ class ReviewJudge(BaseAgent):
         """
 
         prompt = PromptTemplate(
-            input_variables=["target_rating", "samples_text", "generated_review"],
+            input_variables=["target_rating", "samples_text", "generated_review", "characteristics_text"],
             template=template,
             partial_variables={"format_instructions": parser.get_format_instructions()}
         )
 
         chain = prompt | self.llm | parser
 
-        print(f"⚖️ Judging review against {sample_count} real samples...")
+        # print(f"⚖️ Judging review against {sample_count} real samples...")
         try:
             result = chain.invoke({
                 "target_rating": target_rating,
                 "samples_text": samples_text,
-                "generated_review": generated_review_text
+                "generated_review": generated_review_text,
+                "persona": self.persona,
+                "characteristics_text": characteristics_text
             })
             return result
         except Exception as e:
