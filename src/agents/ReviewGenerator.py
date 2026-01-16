@@ -5,24 +5,10 @@ from typing import List
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic import BaseModel, Field
-from src.utils import parse_rating, load_csv_data
 from .base_agent import BaseAgent
 from src.Models import Review, ReviewList
 
 class ReviewGenerator(BaseAgent):
-    def __init__(self, model="xiaomi/mimo-v2-flash:free", temperature=0.7, csv_path="data/real_reviews_capterra.csv", rating_column="rating"):
-        super().__init__(model=model, temperature=temperature)
-        self.rating_column = rating_column
-        self.df = load_csv_data(csv_path)
-        if self.rating_column in self.df.columns:
-            self.df[self.rating_column] = self.df[self.rating_column].apply(parse_rating)
-            self.df = self.df.dropna(subset=[self.rating_column])
-        else:
-            raise ValueError(f"❌ Error: '{self.rating_column}' column not found in CSV file.")
-        
-        if self.df.empty:
-            raise ValueError("❌ Error: DataFrame is empty.")
-
     def generate_reviews(self, target_rating, count=5):
         """
         Generates fake reviews based on the style of existing reviews with the target rating.
