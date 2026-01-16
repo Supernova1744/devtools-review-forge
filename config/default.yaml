@@ -1,0 +1,11 @@
+ReviewJudge:
+    model: "xiaomi/mimo-v2-flash:free"
+    temperature: 0.2
+    csv_path: "data/real_reviews_capterra.csv"
+    rating_column: "rating"
+
+ReviewGenerator:
+    model: "xiaomi/mimo-v2-flash:free"
+    temperature: 0.8
+    csv_path: "data/real_reviews_capterra.csv"
+    rating_column: "rating"
