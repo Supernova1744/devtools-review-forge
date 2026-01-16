@@ -11,8 +11,8 @@ from src.Models import Review, ReviewList
 from src.utils import parse_rating, load_csv_data
 
 class ReviewGenerator(BaseAgent):
-    def __init__(self, model="xiaomi/mimo-v2-flash:free", temperature=0.7, csv_path="data/real_reviews_capterra.csv", rating_column="rating", persona="a Technical Reviewer", review_characteristics=None):
-        super().__init__(model=model, temperature=temperature, csv_path=csv_path, rating_column=rating_column)
+    def __init__(self, model="xiaomi/mimo-v2-flash:free", rollback_model=None, temperature=0.7, csv_path="data/real_reviews_capterra.csv", rating_column="rating", persona="a Technical Reviewer", review_characteristics=None):
+        super().__init__(model=model, rollback_model=rollback_model, temperature=temperature, csv_path=csv_path, rating_column=rating_column)
         self.persona = persona
         self.review_characteristics = review_characteristics or {}
 
@@ -101,7 +101,28 @@ class ReviewGenerator(BaseAgent):
             return result
 
         except Exception as e:
-            print(f"❌ Error generating reviews: {e}")
+            print(f"❌ Error generating reviews with primary model: {e}")
+            if self.rollback_llm:
+                print(f"🔄 Attempting rollback with model: {self.rollback_model}")
+                try:
+                    chain_rollback = prompt | self.rollback_llm | parser
+                    result = chain_rollback.invoke({
+                        "count": count,
+                        "target_rating": target_rating,
+                        "sample_count": sample_count,
+                        "samples_text": samples_text,
+                        "persona": self.persona,
+                        "characteristics_text": characteristics_text
+                    })
+                    print("\n" + "="*40)
+                    print("✨ GENERATED REVIEWS (ROLLBACK) ✨")
+                    print("="*40)
+                    print(result)
+                    return result
+                except Exception as rollback_e:
+                     print(f"❌ Rollback failed as well: {rollback_e}")
+            else:
+                 print("⚠️ No rollback model configured.")
 
 if __name__ == "__main__":
     generator = ReviewGenerator()

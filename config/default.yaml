@@ -1,13 +1,15 @@
 ReviewJudge:
-    model: "xiaomi/mimo-v2-flash:free"
+    model: "mistralai/devstral-2512:free"
+    rollback_model: "xiaomi/mimo-v2-flash:free"
     temperature: 0.2
     csv_path: "data/real_reviews_capterra.csv"
     rating_column: "rating"
     persona: "an expert Review Quality Judge"
 
 ReviewGenerator:
-    model: "xiaomi/mimo-v2-flash:free"
-    temperature: 0.6
+    model: "mistralai/devstral-2512:free"
+    rollback_model: "xiaomi/mimo-v2-flash:free"
+    temperature: 0.7
     csv_path: "data/real_reviews_capterra.csv"
     rating_column: "rating"
     persona: "a Technical Reviewer"
@@ -28,3 +30,6 @@ review_characteristics:
     - "API_documentation"
     - "UI_UX_design"
     - "integration_capabilities"
+
+output_path: "data/generated_reviews.csv"
+report_path: "data/quality_report.md"

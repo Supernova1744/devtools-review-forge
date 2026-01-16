@@ -6,8 +6,9 @@ from src.utils import parse_rating, load_csv_data
 load_dotenv()
 
 class BaseAgent:
-    def __init__(self, model="xiaomi/mimo-v2-flash:free", temperature=0.7, csv_path="data/real_reviews_capterra.csv", rating_column="rating"):
+    def __init__(self, model="xiaomi/mimo-v2-flash:free", rollback_model=None, temperature=0.7, csv_path="data/real_reviews_capterra.csv", rating_column="rating"):
         self.model = model
+        self.rollback_model = rollback_model
         self.temperature = temperature
         self.rating_column = rating_column
         self.df = load_csv_data(csv_path)
@@ -36,7 +37,16 @@ class BaseAgent:
 
         self.llm = ChatOpenAI(
             model=self.model, 
-            temperature=self.temperature, # Lower temperature for evaluation
+            temperature=self.temperature, 
             api_key=api_key,
             base_url=base_url
         )
+
+        self.rollback_llm = None
+        if hasattr(self, 'rollback_model') and self.rollback_model:
+             self.rollback_llm = ChatOpenAI(
+                model=self.rollback_model,
+                temperature=self.temperature,
+                api_key=api_key,
+                base_url=base_url
+            )
