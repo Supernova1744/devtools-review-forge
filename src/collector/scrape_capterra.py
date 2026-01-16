@@ -91,8 +91,11 @@ class CapterraScraper:
                 # 1. Rating
                 # Try to find the star rating number
                 try:
-                    rating_el = card.find_element(By.XPATH, ".//div[@data-testid='rating']/following-sibling::span")
-                    rating = rating_el.text.strip()
+                    # User HTML: <div data-testid='rating' ...><span ...>stars</span><span ...>5.0</span></div>
+                    # The number is text inside a child span of the rating div
+                    rating_el = card.find_element(By.XPATH, ".//div[@data-testid='rating']//span[text()]")
+                    # Or simpler: just get the text of the rating div, usually contains "5.0"
+                    rating = rating_el.text.strip() if rating_el else card.find_element(By.XPATH, ".//div[@data-testid='rating']").text.split("\n")[-1]
                 except:
                     rating = "N/A"
 
@@ -209,7 +212,7 @@ class CapterraScraper:
             print(df[['rating', 'general', 'pros', 'cons']].head())
 
 if __name__ == "__main__":
-    browser_executable_path = None
+    browser_executable_path = r"C:\Users\aly17\Downloads\chrome-win64\chrome-win64\chrome.exe"
     TARGET_URL = "https://www.capterra.com/p/186634/Visual-Studio-Code/reviews/"
     OUTPUT_FILE = "data/real_reviews_capterra.csv"
 
